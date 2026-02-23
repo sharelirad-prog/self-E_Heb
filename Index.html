@@ -1916,16 +1916,19 @@ async function submitData() {
   const rows = buildRows();
 
   try {
-    // no-cors GET — Google Apps Script blocks CORS headers, so we can't read response.
-    // We fire and assume success; CSV backup is always available.
-    const payload = encodeURIComponent(JSON.stringify({header, rows}));
-    await fetch(APPS_SCRIPT_URL + '?data=' + payload, {
-      method: 'GET',
-      mode: 'no-cors',
+    const resp = await fetch('/.netlify/functions/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({header, rows}),
     });
-    status.style.color = 'var(--selected-best)';
-    status.textContent = '✓ הנתונים נשמרו — בדוק/י ב-Google Sheet לאישור';
-    btn.textContent = 'נשלח ✓';
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      status.style.color = 'var(--selected-best)';
+      status.textContent = '✓ הנתונים נשמרו בהצלחה ב-Google Sheet';
+      btn.textContent = 'נשלח ✓';
+    } else {
+      throw new Error(result.message || 'שגיאה');
+    }
   } catch(e) {
     status.style.color = 'var(--selected-worst)';
     status.textContent = '✗ שגיאה בשליחה. הורד את קובץ ה-CSV כגיבוי.';
