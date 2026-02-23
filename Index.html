@@ -1878,7 +1878,7 @@ function monkeyRun() {
 
 // ─── GOOGLE SHEET SUBMIT ─────────────────────────────────────────────────────
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzhSa04CLird-XnbdcnD0QrZvWIQpz6HI10RtzG4nNkCQTNIRFyKrD1H-XnTIa_QBOr/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxjfq3OoTbjjok_aAaSNZUJD28D-9yQ_ynnZKY7bVdMmfMpPGHOabty4oqaNJvllKR/exec';
 
 function buildRows() {
   const rows = [];
@@ -1916,14 +1916,21 @@ async function submitData() {
   const rows = buildRows();
 
   try {
-    // Send via Image tag — bypasses CORS completely
-    const payload = encodeURIComponent(JSON.stringify({header, rows}));
-    await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = img.onerror = resolve; // resolve either way
-      img.src = APPS_SCRIPT_URL + '?data=' + payload;
-      setTimeout(resolve, 5000); // timeout after 5s
-    });
+    // Send in chunks of 20 rows via Image tag to stay under URL length limit
+    const CHUNK = 20;
+    for (let i = 0; i < rows.length; i += CHUNK) {
+      const chunk = rows.slice(i, i + CHUNK);
+      const payload = encodeURIComponent(JSON.stringify({
+        header: i === 0 ? header : null,
+        rows: chunk
+      }));
+      await new Promise(resolve => {
+        const img = new Image();
+        img.onload = img.onerror = resolve;
+        img.src = APPS_SCRIPT_URL + '?data=' + payload;
+        setTimeout(resolve, 5000);
+      });
+    }
     status.style.color = 'var(--selected-best)';
     status.textContent = '✓ הנתונים נשמרו — בדוק/י ב-Google Sheet';
     btn.textContent = 'נשלח ✓';
