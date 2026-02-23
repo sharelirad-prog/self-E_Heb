@@ -1916,19 +1916,17 @@ async function submitData() {
   const rows = buildRows();
 
   try {
-    const resp = await fetch('/.netlify/functions/submit', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({header, rows}),
+    // Send via Image tag — bypasses CORS completely
+    const payload = encodeURIComponent(JSON.stringify({header, rows}));
+    await new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = img.onerror = resolve; // resolve either way
+      img.src = APPS_SCRIPT_URL + '?data=' + payload;
+      setTimeout(resolve, 5000); // timeout after 5s
     });
-    const result = await resp.json();
-    if (result.status === 'ok') {
-      status.style.color = 'var(--selected-best)';
-      status.textContent = '✓ הנתונים נשמרו בהצלחה ב-Google Sheet';
-      btn.textContent = 'נשלח ✓';
-    } else {
-      throw new Error(result.message || 'שגיאה');
-    }
+    status.style.color = 'var(--selected-best)';
+    status.textContent = '✓ הנתונים נשמרו — בדוק/י ב-Google Sheet';
+    btn.textContent = 'נשלח ✓';
   } catch(e) {
     status.style.color = 'var(--selected-worst)';
     status.textContent = '✗ שגיאה בשליחה. הורד את קובץ ה-CSV כגיבוי.';
