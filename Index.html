@@ -1878,7 +1878,7 @@ function monkeyRun() {
 
 // ─── GOOGLE SHEET SUBMIT ─────────────────────────────────────────────────────
 
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxhsP-M8GPG9b9PcOoI9bOYfOF-NWaueMb9C7axViLXHP1FvOsAgHDU5YpWSriyD2uA/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx3wJFWgg1mE2sQMuEYlQaApCxlB7_Ew_nKzk_FG3vWPiD8995rZCN3d65PA4oouH-0/exec';
 
 function buildRows() {
   const rows = [];
@@ -1916,18 +1916,20 @@ async function submitData() {
   const rows = buildRows();
 
   try {
-    // Use no-cors mode to avoid CORS issues with Apps Script
-    // We can't read the response in no-cors, so we assume success after send
-    const form = new FormData();
-    form.append('data', JSON.stringify({header, rows}));
-    await fetch(APPS_SCRIPT_URL, {
+    // text/plain avoids CORS preflight while Apps Script still receives the body
+    const resp = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      mode: 'no-cors',
-      body: form,
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify({header, rows}),
     });
-    status.style.color = 'var(--selected-best)';
-    status.textContent = '✓ הנתונים נשמרו בהצלחה ב-Google Sheet';
-    btn.textContent = 'נשלח ✓';
+    const result = await resp.json();
+    if (result.status === 'ok') {
+      status.style.color = 'var(--selected-best)';
+      status.textContent = '✓ הנתונים נשמרו בהצלחה ב-Google Sheet';
+      btn.textContent = 'נשלח ✓';
+    } else {
+      throw new Error(result.message || 'שגיאה');
+    }
   } catch(e) {
     status.style.color = 'var(--selected-worst)';
     status.textContent = '✗ שגיאה בשליחה. הורד את קובץ ה-CSV כגיבוי.';
